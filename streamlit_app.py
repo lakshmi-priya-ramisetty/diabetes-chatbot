@@ -1,14 +1,9 @@
-from flask import Flask, request, render_template
+import streamlit as st
 import logging
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 import torch
-# from flask_ngrok import run_with_ngrok
 from transformers import BartForConditionalGeneration, BartTokenizer
-from langchain.prompts import PromptTemplate
-# import ssl
-
-# ssl._create_default_https_context = ssl._create_unverified_context
 
 # Determine the device (GPU if available, otherwise CPU)
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -16,10 +11,6 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 DB_FAISS_PATH = 'diabetes_vectorstore/db_faiss'
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
-
-# Initialize Flask app
-app = Flask(__name__)
-# run_with_ngrok(app)
 
 # Document Retriever Class
 class DocumentRetriever:
@@ -67,32 +58,6 @@ class DocumentRetriever:
 
 
 # BART Paraphrase Generator
-# class BARTGenerator:
-#     def __init__(self, bart_model_name='eugenesiow/bart-paraphrase', device="cpu"):
-#         self.bart_model_name = bart_model_name
-#         self.device = device
-
-#         # Load BART model and tokenizer for paraphrasing
-#         self.bart_model = BartForConditionalGeneration.from_pretrained(bart_model_name).to(device)
-#         self.bart_tokenizer = BartTokenizer.from_pretrained(bart_model_name)
-
-#     def generate_response(self, context, question):
-#         """
-#         Generate a response using BART based on the retrieved document context and user question.
-#         """
-#         # Combine context and question as input for BART
-#         input_text = f"{context} {question}"
-        
-#         # Tokenize input text
-#         inputs = self.bart_tokenizer(input_text, return_tensors="pt", truncation=True).to(self.device)
-        
-#         # Generate paraphrase
-#         outputs = self.bart_model.generate(inputs["input_ids"], max_length=300, num_beams=4, no_repeat_ngram_size=2, early_stopping=True)
-        
-#         # Decode the generated text
-#         generated_response = self.bart_tokenizer.decode(outputs[0], skip_special_tokens=True)
-#         return generated_response
-
 class BARTGenerator:
     def __init__(self, bart_model_name='eugenesiow/bart-paraphrase', device="cpu"):
         self.bart_model_name = bart_model_name
@@ -128,20 +93,16 @@ class BARTGenerator:
         """
         Extracts the answer portion of the retrieved document by ignoring questions.
         """
-        # Heuristic to detect if the text is a question (if it contains question words or ends with a question mark)
         question_words = ["what", "how", "why", "when", "who", "where", "is", "are", "can", "should", "do", "does"]
 
-        # Split the text into sentences
         sentences = text.split('.')
         answer_sentences = []
         
         for sentence in sentences:
-            # Ignore sentences that are likely questions
             sentence = sentence.strip()
             if not (sentence.lower().startswith(tuple(question_words)) or sentence.endswith("?")):
                 answer_sentences.append(sentence)
         
-        # Reconstruct the answer part
         answer_part = '. '.join(answer_sentences).strip()
         return answer_part if answer_part else None
 
@@ -152,34 +113,29 @@ retriever.load_faiss_and_embeddings()
 
 bart_generator = BARTGenerator(device=device)
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    if request.method == "POST":
-        query = request.form.get("query")
-        if query:
-            try:
-                # Retrieve three relevant documents (contexts)
-                contexts = retriever.retrieve_documents(query, k=2)
+# Streamlit UI
+st.title("Document Retrieval and Response Generation")
+query = st.text_input("Enter your query")
 
-                if contexts:
-                    # Generate a response using BART for each document
-                    bart_responses = [bart_generator.generate_response(context=context, question=query) for context in contexts]
-                else:
-                    contexts = ["No relevant document found."]
-                    bart_responses = ["I don't know the answer to this question based on the available information."]
+if query:
+    try:
+        # Retrieve three relevant documents (contexts)
+        contexts = retriever.retrieve_documents(query, k=2)
 
-                # Combine contexts and responses into one list of tuples
-                combined_results = list(zip(contexts, bart_responses))
+        if contexts:
+            # Generate a response using BART for each document
+            bart_responses = [bart_generator.generate_response(context=context, question=query) for context in contexts]
+        else:
+            contexts = ["No relevant document found."]
+            bart_responses = ["I don't know the answer to this question based on the available information."]
+        
+        # Display results side by side
+        cols = st.columns(len(contexts))  # Create columns for each result
 
-                # Pass the query, contexts, and bart_responses to the template
-                return render_template("index.html", query=query, combined_results=combined_results, zip=zip)
-            except Exception as e:
-                return render_template("index.html", query=query, error=str(e))
-    return render_template("index.html")
-
-
-
-
-if __name__ == "__main__":
-    # app.run(debug=True, port=5056)
-    app.run(debug=False, host='0.0.0.0')
+        for i, (context, response) in enumerate(zip(contexts, bart_responses)):
+            with cols[i]:
+                # st.subheader(f"Document {i + 1}")
+                st.text_area(f"Response {i + 1}", response, height=150)
+                
+    except Exception as e:
+        st.error(f"Error: {e}")
