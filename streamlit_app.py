@@ -114,7 +114,7 @@ retriever.load_faiss_and_embeddings()
 bart_generator = BARTGenerator(device=device)
 
 # Streamlit UI
-st.title("Document Retrieval and Response Generation")
+st.title("Diabetes chatbot")
 query = st.text_input("Enter your query")
 
 if query:
