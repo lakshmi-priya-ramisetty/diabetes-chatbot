@@ -3,18 +3,23 @@ import logging
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 import torch
+from flask_ngrok import run_with_ngrok
 from transformers import BartForConditionalGeneration, BartTokenizer
 from langchain.prompts import PromptTemplate
+import ssl
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 # Determine the device (GPU if available, otherwise CPU)
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-DB_FAISS_PATH = '/scratch/vetgpt/vetgpt-rlp/diabetes_vectorstore/db_faiss'
+DB_FAISS_PATH = 'diabetes_vectorstore/db_faiss'
 
 logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
 
 # Initialize Flask app
 app = Flask(__name__)
+run_with_ngrok(app)
 
 # Document Retriever Class
 class DocumentRetriever:
@@ -154,7 +159,7 @@ def index():
         if query:
             try:
                 # Retrieve three relevant documents (contexts)
-                contexts = retriever.retrieve_documents(query, k=3)
+                contexts = retriever.retrieve_documents(query, k=2)
 
                 if contexts:
                     # Generate a response using BART for each document
@@ -167,7 +172,7 @@ def index():
                 combined_results = list(zip(contexts, bart_responses))
 
                 # Pass the query, contexts, and bart_responses to the template
-                return render_template("index.html", query=query, combined_results=combined_results)
+                return render_template("index.html", query=query, combined_results=combined_results, zip=zip)
             except Exception as e:
                 return render_template("index.html", query=query, error=str(e))
     return render_template("index.html")
@@ -176,4 +181,5 @@ def index():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5054)
+    # app.run(debug=True, port=5056)
+    app.run()

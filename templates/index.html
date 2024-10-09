@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Retriever</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 50px auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .document-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .document {
+            background-color: #e9f7ef;
+            border: 1px solid #28a745;
+            border-radius: 8px;
+            padding: 20px;
+            flex: 1;
+            margin-bottom: 20px;
+        }
+        h2, h3 {
+            color: #333;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #555;
+        }
+        .paraphrased {
+            margin-top: 10px;
+            background-color: #f0f9ff;
+            border: 1px solid #007bff;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #ddd;
+            margin: 20px 0;
+        }
+        @media (max-width: 768px) {
+            .document-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ask a Question</h1>
+        <form method="POST">
+            <div class="form-group">
+                <!-- <input type="text" name="query" placeholder="Enter your query..." required> -->
+                <input type="text" name="query" placeholder="Enter your query..." value="{{ query }}" required>
+            </div>
+            <div class="form-group">
+                <button type="submit">Submit</button>
+            </div>
+        </form>
+
+        {% if query %}
+            <div class="document-row">
+                {% for context, bart_response in combined_results %}
+                    <div class="document">
+                        <!-- <h3>Retrieved Document {{ loop.index }}</h3>
+                        <p>{{ context }}</p> -->
+
+                        <h3>Generated, Paraphrased Answer</h3>
+                        <div class="paraphrased">
+                            <p>{{ bart_response }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if error %}
+            <div class="error">
+                <p>Error: {{ error }}</p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
