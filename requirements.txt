@@ -1,6 +1,6 @@
-langchain 
-langchain_community 
-faiss-cpu 
-pydantic
-torch
-transformers
+langchain==0.3.3
+langchain-community==0.3.2
+faiss-cpu==1.9.0
+pydantic==2.9.2
+torch==2.4.1
+transformers==4.45.2
